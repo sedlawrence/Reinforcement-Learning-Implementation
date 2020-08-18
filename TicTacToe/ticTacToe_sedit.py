@@ -5,9 +5,46 @@ BOARD_ROWS = 3
 BOARD_COLS = 3
 
 
+def rot90(A):
+    # rotates the 3x3 matrix 90 degrees clockwise
+    B = np.zeros((3, 3))
+    B[0][0] = A[2][0]
+    B[0][1] = A[1][0]
+    B[0][2] = A[0][0]
+    B[1][0] = A[2][1]
+    B[1][1] = A[1][1]
+    B[1][2] = A[0][1]
+    B[2][2] = A[0][2]
+    B[2][1] = A[1][2]
+    B[2][0] = A[2][2]
+    return B
+
+
+def flip(A):
+    # flips the 3x3 matrix such that first and third column are swapped
+    B = np.zeros((3, 3))
+    B[0][0] = A[0][2]
+    B[0][1] = A[0][1]
+    B[0][2] = A[0][0]
+    B[1][0] = A[1][2]
+    B[1][1] = A[1][1]
+    B[1][2] = A[1][0]
+    B[2][2] = A[2][0]
+    B[2][1] = A[2][1]
+    B[2][0] = A[2][2]
+    return B
+
 class State:
     def __init__(self, p1, p2):
         self.board = np.zeros((BOARD_ROWS, BOARD_COLS))
+        # add another 7 boards to account for flips and rotations
+        self.board90 = rot90(self.board)
+        self.board180 = rot90(self.board90)
+        self.board270 = rot90(self.board180)
+        self.boardF = flip(self.board)
+        self.boardF90 = rot90(self.boardF)
+        self.boardF180 = rot90(self.boardF90)
+        self.boardF270 = rot90(self.boardF180)
         self.p1 = p1
         self.p2 = p2
         self.isEnd = False
@@ -16,9 +53,36 @@ class State:
         self.playerSymbol = 1
 
     # get unique hash of current board state
-    def getHash(self):
-        self.boardHash = str(self.board.reshape(BOARD_COLS * BOARD_ROWS))
+    def getHash(self, board):
+        #board hash flattens the 3x3 matrix
+        if board == "board":
+            self.boardHash = str(self.board.reshape(BOARD_COLS * BOARD_ROWS))
+
+        if board == "board90":
+            self.boardHash = str(self.board90.reshape(BOARD_COLS * BOARD_ROWS))
+
+        if board == "board180":
+            self.boardHash = str(self.board180.reshape(BOARD_COLS * BOARD_ROWS))
+
+        if board == "board270":
+            self.boardHash = str(self.board270.reshape(BOARD_COLS * BOARD_ROWS))
+
+        if board == "boardF":
+            self.boardHash = str(self.boardF.reshape(BOARD_COLS * BOARD_ROWS))
+
+        if board == "boardF90":
+            self.boardHash = str(self.boardF90.reshape(BOARD_COLS * BOARD_ROWS))
+
+        if board == "boardF180":
+            self.boardHash = str(self.boardF180.reshape(BOARD_COLS * BOARD_ROWS))
+
+        if board == "boardF270":
+            self.boardHash = str(self.board270.reshape(BOARD_COLS * BOARD_ROWS))
+
+        #print("board hash is", self.boardHash)
         return self.boardHash
+
+
 
     def winner(self):
         # row
@@ -62,11 +126,26 @@ class State:
         for i in range(BOARD_ROWS):
             for j in range(BOARD_COLS):
                 if self.board[i, j] == 0:
+                    #add the coordinates of any "0" element in the board matrix
                     positions.append((i, j))  # need to be tuple
         return positions
 
     def updateState(self, position):
+        #Update the board state after each action and the corresponding mirror boards
         self.board[position] = self.playerSymbol
+        self.board90 = rot90(self.board)
+        self.board180 = rot90(self.board90)
+        self.board270 = rot90(self.board180)
+        self.boardF = flip(self.board)
+        self.boardF90 = rot90(self.boardF)
+        self.boardF180 = rot90(self.boardF90)
+        self.boardF270 = rot90(self.boardF180)
+
+        #print("The 90 board is currently", self.board90)
+        #print("The 180 board is currently", self.board180)
+
+        #print("position is:", position)
+        #print("board position is", self.board[position])
         # switch to another player
         self.playerSymbol = -1 if self.playerSymbol == 1 else 1
 
@@ -87,6 +166,15 @@ class State:
     # board reset
     def reset(self):
         self.board = np.zeros((BOARD_ROWS, BOARD_COLS))
+        #add another 7 boards to account for flips and rotations
+        #self.board90 = np.array[[1, 2, 3],[4,5,6],[7,8,9]]
+        self.board90 = np.zeros((BOARD_ROWS, BOARD_COLS))
+        self.board180 = np.zeros((BOARD_ROWS, BOARD_COLS))
+        self.board270 = np.zeros((BOARD_ROWS, BOARD_COLS))
+        self.boardF = np.zeros((BOARD_ROWS, BOARD_COLS))
+        self.boardF90 = np.zeros((BOARD_ROWS, BOARD_COLS))
+        self.boardF180 = np.zeros((BOARD_ROWS, BOARD_COLS))
+        self.boardF270 = np.zeros((BOARD_ROWS, BOARD_COLS))
         self.boardHash = None
         self.isEnd = False
         self.playerSymbol = 1
@@ -101,14 +189,36 @@ class State:
                 p1_action = self.p1.chooseAction(positions, self.board, self.playerSymbol)
                 # take action and upate board state
                 self.updateState(p1_action)
-                board_hash = self.getHash()
+                #edits here
+                board_hash = self.getHash("board")
+                board_hash90 = self.getHash("board90")
+                board_hash180 = self.getHash("board180")
+                board_hash270 = self.getHash("board270")
+                board_hashF = self.getHash("boardF")
+                board_hashF90 = self.getHash("boardF90")
+                board_hashF180 = self.getHash("boardF180")
+                board_hashF270 = self.getHash("boardF270")
+
+                #print("board hash is", board_hash)
                 self.p1.addState(board_hash)
+                self.p1.addState(board_hash90)
+                self.p1.addState(board_hash180)
+                self.p1.addState(board_hash270)
+                self.p1.addState(board_hashF)
+                self.p1.addState(board_hashF90)
+                self.p1.addState(board_hashF180)
+                self.p1.addState(board_hashF270)
+
+
+
                 # check board status if it is end
 
                 win = self.winner()
                 if win is not None:
                     # self.showBoard()
                     # ended with p1 either win or draw
+                    print(self.p1.name, "wins!")
+                    self.showBoard()
                     self.giveReward()
                     self.p1.reset()
                     self.p2.reset()
@@ -120,18 +230,39 @@ class State:
                     positions = self.availablePositions()
                     p2_action = self.p2.chooseAction(positions, self.board, self.playerSymbol)
                     self.updateState(p2_action)
-                    board_hash = self.getHash()
+                    board_hash = self.getHash("board")
+                    board_hash90 = self.getHash("board90")
+                    board_hash180 = self.getHash("board180")
+                    board_hash270 = self.getHash("board270")
+                    board_hashF = self.getHash("boardF")
+                    board_hashF90 = self.getHash("boardF90")
+                    board_hashF180 = self.getHash("boardF180")
+                    board_hashF270 = self.getHash("boardF270")
+
                     self.p2.addState(board_hash)
+                    self.p2.addState(board_hash90)
+                    self.p2.addState(board_hash180)
+                    self.p2.addState(board_hash270)
+                    self.p2.addState(board_hashF)
+                    self.p2.addState(board_hashF90)
+                    self.p2.addState(board_hashF180)
+                    self.p2.addState(board_hashF270)
+
 
                     win = self.winner()
+
                     if win is not None:
                         # self.showBoard()
                         # ended with p2 either win or draw
+                        print(self.p2.name, "wins!")
+                        self.showBoard()
+
                         self.giveReward()
                         self.p1.reset()
                         self.p2.reset()
                         self.reset()
                         break
+
 
     # play with human
     def play2(self):
@@ -187,6 +318,7 @@ class State:
 
 class Player:
     def __init__(self, name, exp_rate=0.3):
+        #hyperparameters
         self.name = name
         self.states = []  # record all positions taken
         self.lr = 0.2 #SUGGESTION: make the learning rate variable with time?
@@ -211,6 +343,7 @@ class Player:
                 next_boardHash = self.getHash(next_board)
                 value = 0 if self.states_value.get(next_boardHash) is None else self.states_value.get(next_boardHash)
                 # print("value", value)
+                #we take the action with the highest value
                 if value >= value_max:
                     value_max = value
                     action = p
@@ -219,13 +352,16 @@ class Player:
 
     # append a hash state
     def addState(self, state):
+        #print("The state in addState(state) is", state)
         self.states.append(state)
 
     # at the end of game, backpropagate and update states value
     def feedReward(self, reward):
+        #print("length of reversed(self.states)", len((self.states)))
         for st in reversed(self.states):
             if self.states_value.get(st) is None:
                 self.states_value[st] = 0
+            #print("st is", st)
             self.states_value[st] += self.lr * (self.decay_gamma * reward - self.states_value[st])
             reward = self.states_value[st]
 
@@ -233,7 +369,8 @@ class Player:
         self.states = []
 
     def savePolicy(self):
-        fw = open('policy_' + str(self.name), 'wb')
+        fw = open('policyBarbara_' + str(rounds)+'rounds_'+ str(self.name), 'wb')
+        print("Policy Saved")
         pickle.dump(self.states_value, fw)
         fw.close()
 
@@ -272,15 +409,28 @@ if __name__ == "__main__":
     p1 = Player("p1")
     p2 = Player("p2")
 
-    st = State(p1, p2)
-    print("training...")
-    st.play(50000)
-
+    #st = State(p1, p2)
+    #print("training...")
+    #rounds = 15000
+    #st.play(rounds)
+    #p1.savePolicy()
+    #p2.savePolicy()
     # play with human
-    p1 = Player("computer", exp_rate=0)
-    p1.loadPolicy("policy_p1")
+    #p1 = Player("computer", exp_rate=0)
+    #p1.loadPolicy("policy_p1")
 
-    p2 = HumanPlayer("human")
+    #p2 = HumanPlayer("human")
 
-    st = State(p1, p2)
-    st.play2()
+    #st = State(p1, p2)
+    #st.play2()
+
+    #machineBattle
+    Barbara1 = Player("Barbara1_100", exp_rate=0)
+    Barbara1.loadPolicy("policyBarbara_100rounds_p1")
+
+    Barbara2 = Player("Barbara2_15000", exp_rate=0)
+    Barbara2.loadPolicy("policyBarbara_15000rounds_p2")
+    match = State(Barbara1,Barbara2)
+    match.play(3)
+
+
